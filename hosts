@@ -60,7 +60,11 @@
 #10.10.101.237 ansible_python_interpreter=/usr/bin/python3.10
 #10.10.101.131 ansible_python_interpreter=/usr/bin/python3.10
 #
-[fog_server]
-10.10.200.100 ansible_user=ansible ansible_ssh_private_key_file=/home/ansible/.ssh/id_rsa
-fog-server ansible_user=fogadmin ansible_become=true ansible_host=fog-server
+#[fog_server]
+#10.10.200.100 ansible_user=ansible ansible_ssh_private_key_file=/home/ansible/.ssh/id_rsa
+#fog-server ansible_user=fogadmin ansible_become=true ansible_host=fog-server
+
+[ipa2_server]
+10.10.101.132 ansible_user=ansible ansible_ssh_private_key_file=/home/ansible/.ssh/id_rsa
+10.10.101.132 ansible_python_interpreter=/usr/bin/python3.10
 

@@ -1,0 +1,82 @@
+---
+- name: IPA Server Upgrade from Fedora 35 to Fedora 41 (Admin User)
+  hosts: 10.10.101.132  # Ensure this matches your inventory group
+  become: true
+  tasks:
+
+    # Ensure dnf-plugin-system-upgrade is installed
+    - name: Install dnf-plugin-system-upgrade
+      dnf:
+        name: dnf-plugin-system-upgrade
+        state: present
+
+    # Renew Kerberos ticket for admin using password file
+    - name: Renew Kerberos ticket for admin using password file
+      command: kinit -k -t /etc/krb5.keytab admin
+      changed_when: false
+
+    # Ensure dnf is up-to-date before upgrading
+    - name: Ensure dnf is up-to-date
+      dnf:
+        name: dnf
+        state: latest
+
+    # Backup IPA server before upgrade
+    - name: Backup IPA server
+      shell: ipa-backup
+      register: backup_result
+      ignore_errors: true
+
+    # Check if backup was successful
+    - name: Check if backup was successful
+      debug:
+        msg: "Backup was successful"
+      when: backup_result.rc == 0
+
+    # Upgrade Fedora to 38
+    - name: Upgrade Fedora to 41 (ensure dnf is updated first)
+      dnf:
+        name: dnf
+        state: latest
+
+    # Remove old version of IPA server if necessary (optional)
+    - name: Remove old version of IPA server if necessary (optional)
+      dnf:
+        name: ipa-server
+        state: absent
+
+    # Upgrade the system to Fedora 38
+    - name: Upgrade the system to Fedora 38
+      command: dnf system-upgrade download --releasever=38 --allowerasing
+
+    # Reboot the system if necessary
+    - name: Reboot system if necessary
+      reboot:
+        reboot_timeout: 600
+        test_command: uptime
+
+    # Install IPA server after upgrade (if removed)
+    - name: Install IPA server after upgrade (if removed)
+      dnf:
+        name: ipa-server
+        state: present
+
+    # Verify IPA server health
+    - name: Verify IPA server health
+      command: ipa healthcheck
+      register: ipa_healthcheck
+      failed_when: ipa_healthcheck.rc != 0
+
+    # Notify IPA server health status
+    - name: Notify IPA server health status
+      debug:
+        msg: "IPA server is healthy."
+      when: ipa_healthcheck.rc == 0
+
+    # Cleanup IPA backup after upgrade (optional)
+    - name: Cleanup IPA backup
+      file:
+        path: /var/lib/ipa/backup/
+        state: absent
+      when: false  # Skip for now
+
