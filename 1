@@ -1,0 +1,54 @@
+---
+- name: Install Zabbix 7 with Docker on remote Ubuntu host
+  hosts: zabbix_hosts
+  become: yes
+  tasks:
+
+    - name: Update apt packages
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Install necessary dependencies for Docker
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    - name: Add Docker’s official GPG key
+      shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor --yes -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+    - name: Add Docker repository
+      shell: echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    - name: Install Docker and Docker Compose
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose
+        state: present
+
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Clone Zabbix Docker repository
+      git:
+        repo: 'https://github.com/zabbix/zabbix-docker.git'
+        dest: /opt/zabbix-docker
+        version: 7.0
+        update: no
+
+    - name: Start Zabbix containers using Docker Compose
+      command:
+        cmd: "docker-compose -f /opt/zabbix-docker/zabbix_server/docker-compose_zabbix.yml up -d"
+        chdir: "/opt/zabbix-docker"
+
+
