@@ -1,0 +1,44 @@
+---
+- name: Set up FreeIPA master and replicate with ipa2.cave.lan
+  hosts: 10.10.101.236
+  become: yes
+  vars:
+    ipa_domain: "cave.lan"
+    ipa_realm: "CAVE.LAN"
+    ipa_admin_user: "admin"
+    ipa_admin_password: "YourStrongPassword"
+    ipa_master: "ipa2.cave.lan"
+
+  tasks:
+    # 1. Install FreeIPA Server
+    - name: Install FreeIPA server and dependencies
+      package:
+        name:
+          - freeipa-server
+          - freeipa-server-dns
+        state: present
+
+    # 2. Set up FreeIPA server on ipa1.cave.lan
+    - name: Install and configure FreeIPA server on ipa1.cave.lan
+      command: >
+        ipa-server-install --domain={{ ipa_domain }} --realm={{ ipa_realm }}
+        --setup-dns --no-forwarders --unattended
+
+    # 3. Create the replica file on ipa2.cave.lan (ipa2 is the replica)
+    - name: Create the replica file for ipa2.cave.lan
+      command: ipa-replica-prepare ipa2.cave.lan
+      register: replica_file
+      become: true
+
+    # 4. Transfer the replica file to ipa2.cave.lan
+    - name: Copy replica file to ipa2.cave.lan
+      copy:
+        src: "{{ replica_file.stdout }}"
+        dest: /tmp/ipa2.cave.lan.gpg
+      delegate_to: ipa2.cave.lan
+
+    # 5. Install the replica on ipa2.cave.lan
+    - name: Install FreeIPA replica on ipa2.cave.lan
+      command: ipa-replica-install --replica-file=/tmp/ipa2.cave.lan.gpg --unattended
+      delegate_to: ipa2.cave.lan
+

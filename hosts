@@ -64,7 +64,29 @@
 #10.10.200.100 ansible_user=ansible ansible_ssh_private_key_file=/home/ansible/.ssh/id_rsa
 #fog-server ansible_user=fogadmin ansible_become=true ansible_host=fog-server
 
-[ipa2_server]
-10.10.101.132 ansible_user=ansible ansible_ssh_private_key_file=/home/ansible/.ssh/id_rsa
-10.10.101.132 ansible_python_interpreter=/usr/bin/python3.10
+#[ipa2_server]
+#10.10.101.132 ansible_user=ansible ansible_ssh_private_key_file=/home/ansible/.ssh/id_rsa
+#10.10.101.132 ansible_python_interpreter=/usr/bin/python3.10
+
+
+[ipa1_server]
+10.10.101.236 ansible_user=ansible ansible_ssh_private_key_file=/home/ansible/.ssh/id_rsa
+#10.10.101.236 ansible_python_interpreter=/usr/bin/python3.10
+
+[ipa_master]
+ipa1.cave.lan
+
+[ipa_replica]
+ipa2.cave.lan
+
+[all:vars]
+ansible_user=ansible
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ipa_domain=cave.lan
+ipa_realm=CAVE.LAN
+ipa_admin_user=admin
+ipa_admin_password=while-true-do
+ipa_master=ipa2.cave.lan
+ 
+
 
