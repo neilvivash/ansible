@@ -38,7 +38,7 @@
 
     # 4. Ensure that DNS resolution works for ipa1.cave.lan
     - name: Check DNS resolution for ipa1.cave.lan
-      command: dig ipa1.cave.lan 
+      command: dig ipa1.cave.lan @10.10.101.254
       register: dns_resolution
       become: true
 
@@ -53,7 +53,18 @@
         state: started
         enabled: yes
 
-    # 6. Check if IPA services are running
+    # 6. Open firewall ports for HTTP and HTTPS to ensure web UI access
+    - name: Open firewall for HTTP and HTTPS
+      firewalld:
+        service: "{{ item }}"
+        permanent: yes
+        state: enabled
+      with_items:
+        - http
+        - https
+      become: true
+
+    # 7. Check if IPA services are running
     - name: Check if IPA services are running on ipa1.cave.lan
       command: ipactl status
       register: ipa_services_status
@@ -63,7 +74,7 @@
       debug:
         var: ipa_services_status.stdout
 
-    # 7. Test replication by adding a user and verifying it is replicated
+    # 8. Test replication by adding a user and verifying it is replicated
     - name: Add a test user on ipa2.cave.lan (Master)
       command: ipa user-add testuser --first=Test --last=User --password
       delegate_to: ipa2.cave.lan
@@ -78,7 +89,7 @@
       debug:
         var: user_find_result.stdout
 
-    # 8. Test kinit (Kerberos authentication) to verify the admin login works
+    # 9. Test kinit (Kerberos authentication) to verify the admin login works
     - name: Test kinit with admin user on ipa1.cave.lan
       command: kinit admin
       become: true
