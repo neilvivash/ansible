@@ -74,11 +74,29 @@
       poll: 0
       register: fog_install_status
 
-    # Step 8: Skip version check if the UI shows the correct version
-    - name: Skip version check if UI shows correct version
+    - name: Wait for FOG installation to complete
+      async_status:
+        jid: "{{ fog_install_status.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 60
+      delay: 30
+
+    # Step 8: Verify FOG installation
+    - name: Verify new FOG version
+      shell: "grep -Po '(?<=## Version: )\\S+' /opt/fog/.fogsettings || echo 'Not Found'"
+      register: new_fog_version
+      changed_when: false
+      failed_when: false
+
+    - name: Display new FOG version
       debug:
-        msg: "Skipping version check as UI shows the correct version."
-      when: fog_current_version.stdout == "1.5.10"
+        msg: "Newly installed FOG version: {{ new_fog_version.stdout }}"
+
+    - name: Fail if FOG version is incorrect
+      fail:
+        msg: "FOG installation failed! Expected version: {{ fog_version_required }}, but got: {{ new_fog_version.stdout }}"
+      when: new_fog_version.stdout != fog_version_required
 
     # Step 9: Restart necessary services
     - name: Restart Apache web server
@@ -101,10 +119,4 @@
         - FOGImageReplicator
         - FOGSnapinReplicator
         - FOGSnapinHash
-
-    # Step 10: Reboot the FOG server to ensure all configurations are applied
-    - name: Reboot the FOG server
-      reboot:
-        reboot_timeout: 600
-        test_command: uptime
 
